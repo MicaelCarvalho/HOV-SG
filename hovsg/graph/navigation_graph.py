@@ -330,7 +330,6 @@ class NavigationGraph:
             poses_list = [
                 pose for pose in poses_list if np.abs(pose[1, 3] - major_height) < 0.1
             ]
-
             poses_min = np.min(np.array(poses_list)[:, 1, 3])
             poses_list = [pose for pose in poses_list if pose[1, 3] < poses_min + 0.1]
 
@@ -378,7 +377,7 @@ class NavigationGraph:
             )
         # floor_occupancy_map = binary_closing(floor_occupancy_map, iterations=5)
         poses_map = self.get_poses_region(
-            floor_poses_list, floor_dir=floor_dir, radius=0.5, save=save
+            floor_poses_list, floor_dir=floor_dir, radius=0.5, save=save, cluster=False
         )
         np.logical_or(floor_occupancy_map, poses_map, out=floor_occupancy_map)
         self.map = self.create_occupancy_grid(obstaces_vertices)
