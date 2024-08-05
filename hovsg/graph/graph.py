@@ -245,7 +245,7 @@ class Graph:
             # filter feats with dbscan
             if feats.shape[0] == 0:
                 masks_feats.append(
-                    np.zeros((1, self.clip_feat_dim), dtype=self.full_feats_array.dtype)
+                    np.zeros((self.clip_feat_dim,), dtype=self.full_feats_array.dtype)
                 )
                 continue
             feats = feats_denoise_dbscan(feats, eps=0.01, min_points=100)
