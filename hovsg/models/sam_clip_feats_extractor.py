@@ -100,6 +100,7 @@ def extract_feats_per_pixel(
 
     # if nothing is loaded, then generate a mask with SAM
     masks = mask_generator.generate(image)
+    masks = [m for m in masks if m["bbox"][-2] * m["bbox"][-1] > 0]
     # masks = filter_masks(masks)
     # run CLIP on the full image.
     F_g = None
