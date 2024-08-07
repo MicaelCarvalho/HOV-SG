@@ -1,3 +1,4 @@
+import time
 from collections import Counter, defaultdict
 import os
 from pathlib import Path
@@ -297,10 +298,10 @@ def compute_iou_batch(bbox1: torch.Tensor, bbox2: torch.Tensor) -> torch.Tensor:
     '''
     Taken from ConceptGraphs
     Compute IoU between two sets of axis-aligned 3D bounding boxes.
-    
+
     bbox1: (M, V, D), e.g. (M, 8, 3)
     bbox2: (N, V, D), e.g. (N, 8, 3)
-    
+
     returns: (M, N)
     '''
     # Compute min and max for each box
@@ -436,15 +437,31 @@ def pcd_denoise_dbscan(pcd: o3d.geometry.PointCloud, eps=0.02, min_points=10):
     :param min_points: The number of samples in a neighborhood for a point to be considered as a core point.
     :return: Denoised point cloud.
     """
-    ### Remove noise via clustering
+    obj_points = np.asarray(pcd.points)
+    obj_colors = np.asarray(pcd.colors)
+    if len(obj_points) == 0:
+        return pcd
+
+    # times = []
+    # times.append(time.time())
     pcd_clusters = pcd.cluster_dbscan(
         eps=eps,
         min_points=min_points,
     )
+    # times.append(time.time())
+    # old_time = times[-1] - times[-2]
+
+    # dbscan = DBSCAN(eps=eps, min_samples=min_points, n_jobs=-1)
+    # pcd_clusters = dbscan.fit_predict(obj_points)
+    # times.append(time.time())
+    # new_time = times[-1] - times[-2]
+
+    # pct = old_time / new_time
+    # delta = old_time - new_time
+    # if abs(delta) > 5:
+    #     print(f"Speedup: {pct:.2f}, regular {old_time:.2f}, candidate {new_time:.2f}, points {len(obj_points)}")
 
     # Convert to numpy arrays
-    obj_points = np.asarray(pcd.points)
-    obj_colors = np.asarray(pcd.colors)
     pcd_clusters = np.array(pcd_clusters)
 
     # Count all labels in the cluster
@@ -487,6 +504,9 @@ def compute_3d_bbox_iou(bbox1, bbox2, padding=0):
     :param padding (float): Padding to add to the bounding box.
     :return: 3D IoU between 0 and 1.
     """
+    # if bbox1.volume() == 0 or bbox2.volume() == 0:
+    #     return 0
+
     # Get the coordinates of the first bounding box
     bbox1_min = np.asarray(bbox1.get_min_bound()) - padding
     bbox1_max = np.asarray(bbox1.get_max_bound()) + padding
@@ -522,7 +542,7 @@ def merge_3d_masks(mask_list, overlap_threshold=0.5, radius=0.02, iou_thresh=0.0
     :param iou_thresh (float): threshold for iou
     :return: merged point clouds and features
     """
-    
+    # mask_list = [mask_item for mask_item in mask_list if len(mask_item.points) > 0]
     aa_bb = [pcd.get_axis_aligned_bounding_box() for pcd in mask_list]
     overlap_matrix = np.zeros((len(mask_list), len(mask_list)))
 
@@ -539,6 +559,7 @@ def merge_3d_masks(mask_list, overlap_threshold=0.5, radius=0.02, iou_thresh=0.0
     n_components, component_labels = connected_components(graph)
     component_indices = [np.where(component_labels == i)[0] for i in range(n_components)]
     # merge the masks in each component
+    # pcd_list_merged = [merge_point_clouds_list([mask_list[i] for i in ids], voxel_size=0.5 * radius) for ids in component_indices]
     pcd_list_merged = []
     for indices in component_indices:
         pcd_list_merged.append(merge_point_clouds_list([mask_list[i] for i in indices], voxel_size=0.5 * radius))
@@ -617,7 +638,7 @@ def seq_merge(frames_pcd, th, down_size, proxy_th):
             iou_thresh=proxy_th,
         )
         global_masks = mask_list
-    
+
     # apply one more merge
     global_masks = merge_3d_masks(
         global_masks, overlap_threshold=th, radius=down_size, iou_thresh=proxy_th
